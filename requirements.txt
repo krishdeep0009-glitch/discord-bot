@@ -12,3 +12,6 @@ psutil>=5.9.0
 
 # .env file loader
 python-dotenv>=1.0.0
+
+# SSH key pair generation (RSA 4096-bit)
+cryptography>=42.0.0
