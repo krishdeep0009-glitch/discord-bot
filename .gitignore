@@ -1,0 +1,30 @@
+# Environment secrets — never commit these
+.env
+
+# SQLite database (auto-created at runtime)
+*.db
+*.db-shm
+*.db-wal
+
+# Log files
+*.log
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
