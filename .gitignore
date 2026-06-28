@@ -1,10 +1,13 @@
-# Environment secrets — never commit these
+# Secrets — never commit
 .env
 
-# SQLite database (auto-created at runtime)
+# SQLite database
 *.db
 *.db-shm
 *.db-wal
+
+# SSH private keys — never commit
+ssh_keys/
 
 # Log files
 *.log
@@ -27,4 +30,3 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-*.swo
