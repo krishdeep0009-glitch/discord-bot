@@ -1,0 +1,32 @@
+# Secrets — never commit
+.env
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# SSH private keys — never commit
+ssh_keys/
+
+# Log files
+*.log
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
