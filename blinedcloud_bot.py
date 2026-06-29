@@ -26,8 +26,17 @@ from dotenv import load_dotenv
 # ─────────────────────────────────────────────
 load_dotenv()
 
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID", "0"))
+DISCORD_TOKEN  = os.getenv("DISCORD_TOKEN")
+ADMIN_ROLE_ID  = int(os.getenv("ADMIN_ROLE_ID", "0"))
+
+# Comma-separated list of Discord user IDs that have full admin access
+# e.g. ADMIN_USER_IDS=123456789012345678,987654321098765432
+_raw_admin_ids = os.getenv("ADMIN_USER_IDS", "")
+ADMIN_USER_IDS = {
+    int(uid.strip())
+    for uid in _raw_admin_ids.split(",")
+    if uid.strip().isdigit()
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -467,9 +476,15 @@ def container_stats(container, assigned_ram_mb: int = 0, assigned_cpu_cores: flo
 # ─────────────────────────────────────────────
 
 def is_admin(interaction: discord.Interaction) -> bool:
-    if interaction.guild is None:
-        return False
-    return any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles)
+    """Returns True if the user has the admin role OR is in ADMIN_USER_IDS."""
+    # Always allow if the user's ID is in the admin list (works in DMs too)
+    if interaction.user.id in ADMIN_USER_IDS:
+        return True
+    # Also allow if they have the admin role (guild only)
+    if interaction.guild is not None:
+        if any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+            return True
+    return False
 
 
 def owns_vps(user_id: int, vps_id: str) -> bool:
@@ -1072,6 +1087,69 @@ async def cmd_node_stats(interaction: discord.Interaction):
         ],
     ))
 
+
+
+@bot.tree.command(name="commands", description="Show all available Blined Cloud commands.")
+async def cmd_commands(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    user_cmds = [
+        ("`/start <vps_id>`",           "▶️  Start your VPS instance"),
+        ("`/stop <vps_id>`",            "⏹️  Stop your VPS instance"),
+        ("`/restart <vps_id>`",         "🔄  Restart your VPS instance"),
+        ("`/reinstall <vps_id>`",       "🔁  Wipe & reinstall VPS (same specs)"),
+        ("`/regen-ssh <vps_id>`",       "🔑  Get a fresh tmate session link (sent to DM)"),
+        ("`/vps-performance <vps_id>`", "📊  Live CPU, RAM, Disk, Uptime, Network stats"),
+        ("`/my-vps`",                   "📋  List all your VPS instances"),
+        ("`/commands`",                 "📖  Show this command list"),
+    ]
+
+    admin_cmds = [
+        ("`/create <user> <memory> <cpu> <disk> <os>`", "➕  Provision a new VPS for a user"),
+        ("`/admin-add-user <user>`",                    "✅  Grant a user hosting access"),
+        ("`/admin-remove-user <user>`",                 "❌  Revoke a user's hosting access"),
+        ("`/suspend-vps <vps_id>`",                     "⛔  Stop & lock a VPS"),
+        ("`/unsuspend-vps <vps_id>`",                   "🔓  Reactivate a suspended VPS"),
+        ("`/remove-vps <vps_id>`",                      "🗑️  Permanently delete a VPS"),
+        ("`/list-vps`",                                 "📋  List every VPS on the node"),
+        ("`/node-stats`",                               "🖥️  Host CPU, RAM, Disk & container counts"),
+    ]
+
+    user_embed = discord.Embed(
+        title="👤 User Commands",
+        description="Commands available to all VPS owners.",
+        color=BRAND_COLOR,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    user_embed.set_footer(text=FOOTER_TEXT)
+    for cmd, desc in user_cmds:
+        user_embed.add_field(name=cmd, value=desc, inline=False)
+
+    admin_embed = discord.Embed(
+        title="🛡️ Admin Commands",
+        description="Requires **Admin Role** or **Admin User ID** in `.env`.",
+        color=ERROR_COLOR,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    admin_embed.set_footer(text=FOOTER_TEXT)
+    for cmd, desc in admin_cmds:
+        admin_embed.add_field(name=cmd, value=desc, inline=False)
+
+    os_embed = discord.Embed(
+        title="📖 Reference",
+        color=INFO_COLOR,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    os_embed.set_footer(text=FOOTER_TEXT)
+    os_embed.add_field(name="🖥️ OS Templates (`<os>` in /create)", value="`ubuntu22` → Ubuntu 22.04\n`debian11`  → Debian 11", inline=False)
+    os_embed.add_field(name="📌 VPS ID Format", value="Auto-assigned: `BC-0001`, `BC-0002`, `BC-0003` ...", inline=False)
+    os_embed.add_field(name="📬 Credentials", value="SSH / tmate links are always sent via **DM only** — never shown publicly.", inline=False)
+    os_embed.add_field(name="💡 Tip", value="After `/start` or `/restart`, use `/regen-ssh` to get a fresh tmate session link.", inline=False)
+    os_embed.add_field(name="🧠 RAM", value="Exact MB assigned — shown correctly in `neofetch` and `free`.", inline=True)
+    os_embed.add_field(name="💻 CPU", value="Exact cores assigned via Docker cgroups.", inline=True)
+    os_embed.add_field(name="💾 Disk", value="Exact GB assigned via Docker storage-opt.", inline=True)
+
+    await interaction.followup.send(embeds=[user_embed, admin_embed, os_embed])
 
 # ─────────────────────────────────────────────
 # Entry Point
