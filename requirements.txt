@@ -1,14 +1,5 @@
 # Blined Cloud VPS Manager — Python dependencies
-# Install with: pip install -r requirements.txt
-
-# Discord bot framework (v2.x — slash commands, interactions)
 discord.py>=2.3.0
-
-# Docker SDK — manage containers as VPS instances
 docker>=7.0.0
-
-# System resource monitoring (CPU, RAM, Disk for /node-stats)
 psutil>=5.9.0
-
-# .env file loader
 python-dotenv>=1.0.0
