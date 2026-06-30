@@ -1,0 +1,52 @@
+# syntax=docker/dockerfile:1
+#
+# Blined Cloud base image template.
+# Build one of these per OS with:
+#   docker build --build-arg BASE_IMAGE=ubuntu:22.04 -t blinedcloud/ubuntu22-systemd -f Dockerfile.template .
+#
+# These images provide a working systemd init (PID 1) plus tmate/neofetch
+# pre-installed, so the bot doesn't need to install them at container
+# creation time (faster /create, fewer apt-related failures at runtime)
+# and so /sbin/init actually exists (stock Ubuntu/Debian Docker Hub images
+# are minimal and do NOT ship systemd, which is what caused the
+# "exec: /sbin/init: stat /sbin/init: no such file or directory" failure).
+
+ARG BASE_IMAGE=ubuntu:22.04
+FROM ${BASE_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV container=docker
+
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        systemd \
+        systemd-sysv \
+        tmate \
+        neofetch \
+        ca-certificates \
+        curl \
+        sudo \
+        openssh-client \
+        iproute2 \
+        less \
+        nano \
+        vim \
+        net-tools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Mask units that cause issues / hang boot inside containers
+RUN systemctl mask \
+        systemd-udevd.service \
+        systemd-udevd.socket \
+        sys-kernel-debug.mount \
+        sys-kernel-tracing.mount \
+        getty.target \
+        getty-static.service \
+        console-getty.service \
+        systemd-logind.service \
+    2>/dev/null || true
+
+STOPSIGNAL SIGRTMIN+3
+
+CMD ["/sbin/init"]
